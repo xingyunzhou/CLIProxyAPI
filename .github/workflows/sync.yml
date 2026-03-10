@@ -1,0 +1,25 @@
+name: Sync fork with upstream
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # 每 6 小时
+  workflow_dispatch:       # 允许手动执行
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sync upstream
+        run: |
+          git remote add upstream https://github.com/router-for-me/CLIProxyAPI.git
+          git fetch upstream
+          git checkout main
+          git reset --hard upstream/main
+          git push origin main
