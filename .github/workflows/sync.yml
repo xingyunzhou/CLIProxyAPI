@@ -2,24 +2,38 @@ name: Sync fork with upstream
 
 on:
   schedule:
-    - cron: '0 */6 * * *'   # 每 6 小时
-  workflow_dispatch:       # 允许手动执行
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: write   # 必须开启写入权限
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0          # 全历史记录，解决 non-fast-forward
 
-      - name: Sync upstream
+      - name: Sync with upstream
         run: |
-          git remote add upstream https://github.com/router-for-me/CLIProxyAPI.git
-          git fetch upstream
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 添加上游仓库（已确认地址）
+          git remote add upstream https://github.com/router-for-me/CLIProxyAPI.git || true
+          
+          # 拉取最新代码
+          git fetch upstream --tags --prune
+          git fetch origin
+          
+          # 切换到 main 并合并 upstream
           git checkout main
-          git reset --hard upstream/main
-          git push origin main
+          git merge upstream/main --no-ff -m "chore: sync with upstream main"
+          
+          # 安全推送（不会覆盖别人新提交）
+          git push origin main --force-with-lease
